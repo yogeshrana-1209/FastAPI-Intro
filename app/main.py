@@ -11,12 +11,20 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi import Form
 from fastapi.responses import JSONResponse   
+from app.routers import model
+from app.routers import nestedmodel
+from app.routers import depinjection_example
 import shutil
 # from pydantic import BaseModel
 
 app = FastAPI()
 templates = Jinja2Templates(directory="app/templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+#Import Other Files routes from (/routes folder)
+app.include_router(model.router)
+app.include_router(nestedmodel.router)
+app.include_router(depinjection_example.router)
 
 #variables
 UPLOAD_DIR = "uploads"
@@ -150,3 +158,15 @@ def create_cookie():
 @app.get("/readcookie/")
 async def read_cookie(username: str = Cookie(None)):
    return {"username": username}
+
+#Header Parameters
+@app.get("/headers/")
+async def read_header(accept_language: Optional[str] = Header(None)):
+   return {"Accept-Language": accept_language} 
+
+#Change the Response Headers
+@app.get("/rspheader/")
+def set_rsp_headers():
+   content = {"message": "Hello World"}
+   headers = {"X-Web-Framework": "FastAPI", "Content-Language": "en-US"}
+   return JSONResponse(content=content, headers=headers)
