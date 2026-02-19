@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse
 from app.routers import model
 from app.routers import nestedmodel
 from app.routers import depinjection_example
+from app.routers import bookrouter
 import shutil
 # from pydantic import BaseModel
 
@@ -25,6 +26,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(model.router)
 app.include_router(nestedmodel.router)
 app.include_router(depinjection_example.router)
+app.include_router(bookrouter.router, prefix="/api/v1", tags=["Books"])
 
 #variables
 UPLOAD_DIR = "uploads"
