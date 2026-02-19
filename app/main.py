@@ -1,15 +1,26 @@
 import uvicorn
+import os
+import uuid
+import aiofiles
 # from fastapi import FastAPI, Path, Query
-from fastapi import FastAPI, Body, Request
+from fastapi import FastAPI, Body, Request, File, UploadFile, Cookie, Header
 from fastapi.responses import HTMLResponse
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel, Field
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+from fastapi import Form
+from fastapi.responses import JSONResponse   
+import shutil
 # from pydantic import BaseModel
 
 app = FastAPI()
+templates = Jinja2Templates(directory="app/templates")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-templates = Jinja2Templates(directory="templates")
+#variables
+UPLOAD_DIR = "uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # print("BaseModel", BaseModel)
 # Get greet msg
@@ -74,5 +85,68 @@ async def hello():
 async def hello(request: Request, name: str):
    return templates.TemplateResponse("greet.html", {"request": request, "name" : name})
 
-if __name__ == "__main__":
-   uvicorn.run("main:app", host="localhost", port=8000, reload=True)
+@app.get("/hellomsg/{name}", response_class=HTMLResponse)
+async def hellomsg(request: Request, name:str):
+   return templates.TemplateResponse("hellomsg.html", {"request": request, "name":name})
+
+# Method=1 (Using HTML Form)
+#Submit Form using html Form
+@app.get("/login/", response_class=HTMLResponse)
+async def login(request: Request):
+   return templates.TemplateResponse("login.html", {"request": request})
+
+#Submit Form using html Form
+@app.post("/submit/")
+async def submit(nm: str = Form(...), pwd: str = Form(...)):
+   return {"username": nm}
+
+#Method=2 (Using Pydantic Model)
+
+class User(BaseModel):
+   username: str
+   password: str
+
+@app.post("/submit/", response_model=User)
+async def submit(nm: User = Form(...), pwd: str = Form(...)):
+   return User(username=nm, password=pwd)
+
+# File Upload API (Front-end)
+@app.get("/upload/", response_class=HTMLResponse)
+async def upload(request: Request):
+   return templates.TemplateResponse("uploadfile.html", {"request": request})
+
+# Upload File (Create File Upload api)
+@app.post("/uploadfile/")
+async def create_upload_file(file: UploadFile = File(...)):
+   with open("destination.png", "wb") as buffer:
+      shutil.copyfileobj(file.file, buffer)
+   return {"filename": file.filename}  
+
+@app.post("/fileupload/")
+async def upload_file(file: UploadFile = File(...)):
+
+    file_ext = os.path.splitext(file.filename)[1]
+    unique_name = f"{uuid.uuid4().hex}{file_ext}"
+    file_path = os.path.join(UPLOAD_DIR, unique_name)
+
+    async with aiofiles.open(file_path, "wb") as out_file:
+        content = await file.read()
+        await out_file.write(content)
+
+    return {
+        "original_name": file.filename,
+        "saved_as": unique_name
+    }
+
+# Set Cookie api
+@app.post("/cookie/")
+def create_cookie():
+   content = {"message": "cookie set"}
+   response = JSONResponse(content=content)
+   response.set_cookie(key="username", value="yogesh")
+   return response
+
+# Get/Read Cookie
+@app.get("/readcookie/")
+async def read_cookie(username: str = Cookie(None)):
+   return {"username": username}
