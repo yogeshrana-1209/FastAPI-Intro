@@ -24,9 +24,9 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # print("BaseModel", BaseModel)
 # Get greet msg
-# @app.get("/")
-# async def index():
-#    return {"message": "Hello World"}
+@app.get("/")
+async def index():
+   return {"message": "Hello, Welcome to FastAPI Tutorial"}
 
 #get name
 # @app.get("/helloname/{name}")
